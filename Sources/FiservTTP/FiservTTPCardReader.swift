@@ -36,7 +36,7 @@ public struct FiservTTPCardReaderError: Error {
         self.failureReason = failureReason
     }
 }
-
+@available(iOS 16.0, *)
 public class FiservTTPCardReader {
     
     private let configuration: FiservTTPConfig

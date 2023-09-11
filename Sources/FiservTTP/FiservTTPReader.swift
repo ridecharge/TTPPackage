@@ -23,202 +23,207 @@
 import Foundation
 import ProximityReader
 
+@available(iOS 16.0, *)
 internal class FiservTTPReader {
     
-    private var paymentCardReader: PaymentCardReader?
-    
-    private var cardReaderSession: PaymentCardReaderSession?
-    
-    private let config: FiservTTPConfig
-    
-    internal init(config: FiservTTPConfig) {
+        private var paymentCardReader: PaymentCardReader?
         
-        self.config = config
+        private var cardReaderSession: PaymentCardReaderSession?
         
-        self.paymentCardReader = PaymentCardReader()
-    }
-    
-    internal func finalize() {
-        paymentCardReader = nil
-        cardReaderSession = nil
-    }
-    
-    internal func readerIdentifier() -> String? {
-                
-        if let cardReader = self.paymentCardReader {
-            return String(UInt(bitPattern: ObjectIdentifier(cardReader)))
-        }
-        return nil
-    }
-    
-    internal func readerIsSupported() -> Bool {
+        private let config: FiservTTPConfig
         
-        return PaymentCardReader.isSupported
-    }
-    
-    // Only handle the condition where the account is already linked
-    // All other errors will propagate to surrounding scope
-    internal func linkAccount(token: String) async throws {
-        
-        let title = "Link Account"
-        
-        guard let cardReader = self.paymentCardReader else {
+        internal init(config: FiservTTPConfig) {
             
-            throw FiservTTPCardReaderError(title: title,
-                                           localizedDescription: NSLocalizedString("Payment Card Reader not available.", comment: ""))
+            self.config = config
+            
+            self.paymentCardReader = PaymentCardReader()
         }
         
-        let token = PaymentCardReader.Token(rawValue: token)
+        internal func finalize() {
+            paymentCardReader = nil
+            cardReaderSession = nil
+        }
         
-        do {
+        internal func readerIdentifier() -> String? {
             
-            try await cardReader.linkAccount(using: token)
-            
-            // Only handle the condition where the account is already linked
-            // All other erreors will propagate to surrounding scope
-        } catch PaymentCardReaderError.accountAlreadyLinked {
-            // This error will not be thrown
-        } catch {
-            
-            if let err = error as? PaymentCardReaderError {
-            
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else {
-                throw FiservTTPCardReaderError(title: title,
-                                               localizedDescription: error.localizedDescription)
+            if let cardReader = self.paymentCardReader {
+                return String(UInt(bitPattern: ObjectIdentifier(cardReader)))
             }
-        }
-    }
-    
-    // Before using a device to read payment cards, you need to configure it appropriately.
-    // This configuration must be done on every device using for Tap to Pay on iPhone
-    // for the first time. The initial configuration of a device can take up to two minutes.
-    // Any subsequent configuration updates typically take just a few seconds.
-    
-    internal func initializeSession(token: String, eventHandler: @escaping (String) -> Void) async throws {
-        
-        let title = "Initialize Session"
-        
-        guard let cardReader = self.paymentCardReader else {
-            
-            throw FiservTTPCardReaderError(title: title,
-                                           localizedDescription: NSLocalizedString("Payment Card Reader not available.", comment: ""))
+            return nil
         }
         
-        let readerToken = PaymentCardReader.Token(rawValue: token)
-        
-        let events = cardReader.events
-        
-        do {
+        internal func readerIsSupported() -> Bool {
             
-            Task {
+            return PaymentCardReader.isSupported
+        }
+        
+        // Only handle the condition where the account is already linked
+        // All other errors will propagate to surrounding scope
+        internal func linkAccount(token: String) async throws {
+            
+            let title = "Link Account"
+            
+            guard let cardReader = self.paymentCardReader else {
                 
-                for await event in events {
+                throw FiservTTPCardReaderError(title: title,
+                                               localizedDescription: NSLocalizedString("Payment Card Reader not available.", comment: ""))
+            }
+            
+            let token = PaymentCardReader.Token(rawValue: token)
+            
+            do {
+                
+                try await cardReader.linkAccount(using: token)
+                
+                // Only handle the condition where the account is already linked
+                // All other erreors will propagate to surrounding scope
+            } catch PaymentCardReaderError.accountAlreadyLinked {
+                // This error will not be thrown
+            } catch {
+                
+                if let err = error as? PaymentCardReaderError {
                     
-                    await MainActor.run {
-                        eventHandler(event.name)
-                    }
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else {
+                    throw FiservTTPCardReaderError(title: title,
+                                                   localizedDescription: error.localizedDescription)
                 }
             }
+        }
+        
+        // Before using a device to read payment cards, you need to configure it appropriately.
+        // This configuration must be done on every device using for Tap to Pay on iPhone
+        // for the first time. The initial configuration of a device can take up to two minutes.
+        // Any subsequent configuration updates typically take just a few seconds.
+        
+    
+    internal func initializeSession(token: String, eventHandler: @escaping (String) -> Void) async throws {
             
-            cardReaderSession = try await self.paymentCardReader?.prepare(using: readerToken)
+            let title = "Initialize Session"
             
-        } catch {
-            
-            if let err = error as? PaymentCardReaderError {
-            
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else {
+            guard let cardReader = self.paymentCardReader else {
                 
                 throw FiservTTPCardReaderError(title: title,
-                                               localizedDescription: error.localizedDescription)
+                                               localizedDescription: NSLocalizedString("Payment Card Reader not available.", comment: ""))
+            }
+            
+            
+            let readerToken = PaymentCardReader.Token(rawValue: token)
+            
+            
+            let events = cardReader.events
+            
+            do {
+                
+                Task {
+                    
+                    for await event in events {
+                        
+                        await MainActor.run {
+                            eventHandler(event.name)
+                        }
+                    }
+                }
+                
+                cardReaderSession = try await self.paymentCardReader?.prepare(using: readerToken)
+                
+            } catch {
+                
+                if let err = error as? PaymentCardReaderError {
+                    
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else {
+                    
+                    throw FiservTTPCardReaderError(title: title,
+                                                   localizedDescription: error.localizedDescription)
+                }
+            }
+        }
+        
+        internal func validateCard(currencyCode: String) async throws -> FiservTTPValidateCardResponse {
+            
+            guard let session = cardReaderSession else {
+                
+                throw FiservTTPCardReaderError(title: "Invalid Session",
+                                               localizedDescription: NSLocalizedString("The card reader session has not been initialized.", comment: ""))
+            }
+            
+            do {
+                
+                let request = PaymentCardVerificationRequest(currencyCode: currencyCode, for: .other)
+                
+                // This method throws a ReadError if a person dismisses the sheet or the sheet fails to appear.
+                let result = try await session.readPaymentCard(request)
+                
+                return FiservTTPValidateCardResponse(id: result.id,
+                                                     generalCardData: result.generalCardData,
+                                                     paymentCardData: result.paymentCardData)
+            } catch {
+                
+                if let err = error as? PaymentCardReaderError {
+                    
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else if let err = error as? PaymentCardReaderSession.ReadError {
+                    
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else {
+                    
+                    throw FiservTTPCardReaderError(title: "Validate Card",
+                                                   localizedDescription: error.localizedDescription)
+                }
+            }
+        }
+        
+        internal func readCard(for amount: Decimal,
+                               currencyCode: String,
+                               eventHandler: @escaping (String) -> Void) async throws -> Result<PaymentCardReadResult, Error> {
+            
+            guard let session = cardReaderSession else {
+                
+                return .failure(FiservTTPCardReaderError(title: "Invalid Session",
+                                                         localizedDescription: NSLocalizedString("The card reader session has not been initialized.", comment: "")))
+            }
+            do {
+                let request = PaymentCardTransactionRequest(amount: amount, currencyCode: currencyCode, for: .purchase)
+                
+                // This method throws a ReadError if a person dismisses the sheet or the sheet fails to appear.
+                
+                let result = try await session.readPaymentCard(request)
+                
+                if let _ = result.generalCardData, let _ = result.paymentCardData {
+                    
+                    return .success(result)
+                }
+                
+                return .failure(FiservTTPCardReaderError(title: "Read Payment Card",
+                                                         localizedDescription: "The card was unable to be successfully read."))
+                
+            } catch {
+                
+                if let err = error as? PaymentCardReaderError {
+                    
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else if let err = error as? PaymentCardReaderSession.ReadError {
+                    
+                    throw FiservTTPCardReaderError(title: err.errorName,
+                                                   localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
+                    
+                } else {
+                    
+                    throw FiservTTPCardReaderError(title: "Read Card Payment",
+                                                   localizedDescription: error.localizedDescription)
+                }
             }
         }
     }
-    
-    internal func validateCard(currencyCode: String) async throws -> FiservTTPValidateCardResponse {
-        
-        guard let session = cardReaderSession else {
-         
-            throw FiservTTPCardReaderError(title: "Invalid Session",
-                                            localizedDescription: NSLocalizedString("The card reader session has not been initialized.", comment: ""))
-        }
-        
-        do {
-            
-            let request = PaymentCardVerificationRequest(currencyCode: currencyCode, for: .other)
-            
-            // This method throws a ReadError if a person dismisses the sheet or the sheet fails to appear.
-            let result = try await session.readPaymentCard(request)
-            
-            return FiservTTPValidateCardResponse(id: result.id,
-                                                 generalCardData: result.generalCardData,
-                                                 paymentCardData: result.paymentCardData)
-        } catch {
-            
-            if let err = error as? PaymentCardReaderError {
-            
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else if let err = error as? PaymentCardReaderSession.ReadError {
-                
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else {
-                
-                throw FiservTTPCardReaderError(title: "Validate Card",
-                                               localizedDescription: error.localizedDescription)
-            }
-        }
-    }
-    
-    internal func readCard(for amount: Decimal,
-                         currencyCode: String,
-                         eventHandler: @escaping (String) -> Void) async throws -> Result<PaymentCardReadResult, Error> {
-        
-        guard let session = cardReaderSession else {
-         
-            return .failure(FiservTTPCardReaderError(title: "Invalid Session",
-                                                     localizedDescription: NSLocalizedString("The card reader session has not been initialized.", comment: "")))
-        }
-        do {
-            let request = PaymentCardTransactionRequest(amount: amount, currencyCode: currencyCode, for: .purchase)
-            
-            // This method throws a ReadError if a person dismisses the sheet or the sheet fails to appear.
-            
-            let result = try await session.readPaymentCard(request)
-            
-            if let _ = result.generalCardData, let _ = result.paymentCardData {
-                
-                return .success(result)
-            }
-            
-            return .failure(FiservTTPCardReaderError(title: "Read Payment Card",
-                                                     localizedDescription: "The card was unable to be successfully read."))
-            
-        } catch {
-            
-            if let err = error as? PaymentCardReaderError {
-            
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else if let err = error as? PaymentCardReaderSession.ReadError {
-                
-                throw FiservTTPCardReaderError(title: err.errorName,
-                                               localizedDescription: NSLocalizedString(err.errorDescription, comment: ""))
-                
-            } else {
-                
-                throw FiservTTPCardReaderError(title: "Read Card Payment",
-                                               localizedDescription: error.localizedDescription)
-            }
-        }
-    }
-}
+

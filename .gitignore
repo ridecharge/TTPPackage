@@ -7,3 +7,7 @@ DerivedData/
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+Example/Pods
+Example/FiservTTP.xcodeproj/xcshareddata
+Example/FiservTTP.xcodeproj/project.xcworkspace/xcshareddata
+Example/FiservTTP.xcworkspace/xcshareddata

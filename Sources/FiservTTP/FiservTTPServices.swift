@@ -181,7 +181,7 @@ extension FiservTTPEndpoint {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // SERVICES
-
+@available(iOS 16.0, *)
 protocol FiservTTPServicesProtocol {
     
     func requestSessionToken() async -> Result<FiservTTPTokenResponse, FiservTTPRequestError>
@@ -218,6 +218,7 @@ protocol FiservTTPServicesProtocol {
                                    responseModel: T.Type) async -> Result<T, FiservTTPRequestError>
 }
 
+@available(iOS 16.0, *)
 internal struct FiservTTPServices: FiservTTPServicesProtocol {
     
     private let tokenEndpoint: FiservTTPEndpoint
@@ -674,7 +675,7 @@ extension String {
         return data
     }
 }
-
+@available(iOS 16.0, *)
 extension FiservTTPServices {
     
     var timestamp: Int64 {
@@ -687,7 +688,7 @@ extension FiservTTPServices {
         return Int.random(in: 10000000..<100000000)
     }
 }
-
+@available(iOS 16.0, *)
 extension FiservTTPServices {
     
     func evaluateHttpStatusCode(statusCode: Int, data: Data) -> FiservTTPRequestError {

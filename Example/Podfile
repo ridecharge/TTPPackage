@@ -1,0 +1,13 @@
+use_frameworks!
+
+platform :ios, '14.0'
+
+target 'FiservTTP_Example' do
+  pod 'FiservTTP', :path => '../'
+
+  target 'FiservTTP_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
